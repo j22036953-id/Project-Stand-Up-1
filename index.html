@@ -2,184 +2,409 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Melbourne Housing Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.25.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.16.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.23.0"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-        .filters { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .chart-card { background: white; margin-bottom: 30px; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .vis-container { width: 100%; min-height: 400px; }
-        label { margin-right: 20px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Melbourne Property Dashboard – Professional Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <h1>🏠 Melbourne Housing Dashboard</h1>
+<div class="dashboard">
+    <div class="header">
+        <h1>🏡 Melbourne House Price Explorer</h1>
+        <p>Interactive dashboard | 2016–2018 sales data | Filter, compare, discover</p>
+    </div>
+
     <div class="filters">
-        <label>Type:
-            <select id="type-filter">
-                <option value="All">All</option>
-                <option value="h">House</option>
-                <option value="u">Unit</option>
-                <option value="t">Townhouse</option>
+        <div class="filter-group">
+            <label>📍 Suburb</label>
+            <select id="suburbSelect">
+                <option value="all">All suburbs</option>
             </select>
-        </label>
-        <label>Max Price: $
-            <input type="range" id="price-slider" min="0" max="7000000" step="100000" value="7000000">
-            <span id="price-value">7,000,000</span>
-        </label>
-        <label>Region:
-            <select id="region-filter"><option value="All">All</option></select>
-        </label>
-        <button id="reset">Reset Filters</button>
+        </div>
+        <div class="filter-group">
+            <label>💰 Max price (AUD)</label>
+            <input type="range" id="priceSlider" min="0" max="3500000" step="50000" value="3500000">
+            <div class="price-value" id="priceValue">Up to $3,500,000</div>
+        </div>
+        <div class="filter-group checkbox-group">
+            <label><input type="checkbox" value="h" checked> 🏠 House</label>
+            <label><input type="checkbox" value="t" checked> Testing Townhouse</label>
+            <label><input type="checkbox" value="u" checked> 🏢 Unit</label>
+        </div>
+        <div class="filter-group">
+            <label>📅 Year range</label>
+            <select id="yearSelect">
+                <option value="all">All years</option>
+                <option value="2016">2016</option>
+                <option value="2017">2017</option>
+                <option value="2018">2018</option>
+            </select>
+        </div>
+        <button class="reset-btn" id="resetBtn">⟳ Reset all filters</button>
     </div>
 
-    <div class="chart-card">
-        <h3>📈 Scatter Plot: Price vs Distance (coloured by Region)</h3>
-        <div id="scatter-plot" class="vis-container"></div>
-    </div>
-    <div class="chart-card">
-        <h3>📊 Bar Chart: Median Price by Region</h3>
-        <div id="bar-chart" class="vis-container"></div>
-    </div>
-    <div class="chart-card">
-        <h3>📉 Line Chart: Median Price Over Time</h3>
-        <div id="line-chart" class="vis-container"></div>
+    <div class="chart-grid">
+        <div class="chart-card col-span-2">
+            <h3>📊 Average price by region</h3>
+            <div class="canvas-container">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-card col-span-2">
+            <h3>📈 Price vs Distance from CBD</h3>
+            <div class="canvas-container">
+                <canvas id="scatterChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3>🍕 Properties by Area</h3>
+            <div class="canvas-container">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3>🍩 Sales by Region</h3>
+            <div class="canvas-container">
+                <canvas id="donutChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card col-span-2">
+            <h3>📉 Price trend over time (monthly average)</h3>
+            <div class="canvas-container">
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
     </div>
 
-    <script>
-        let fullData = [];
-        let filters = { type: "All", maxPrice: 7000000, region: "All" };
+    <div class="footer">
+        Data source: Cleaned Melbourne house sales (63k+ records) | Hover on charts for details | Charts update instantly with filters
+    </div>
+</div>
 
-        function parseDate(str) {
-            if (!str) return null;
-            let parts = str.split('/');
-            if (parts.length !== 3) return null;
-            let day = parseInt(parts[0], 10);
-            let month = parseInt(parts[1], 10) - 1;
-            let year = parseInt(parts[2], 10);
-            return new Date(year, month, day);
-        }
+<script>
+    let fullData = [];
+    let areaData = [];
+    let regionSalesData = [];
+    let barChart, scatterChart, lineChart, pieChart, donutChart;
 
-        async function loadData() {
-            try {
-                const resp = await fetch("data/melbourne_cleaned.csv");
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}: file not found`);
-                const text = await resp.text();
-                const parsed = d3.csvParse(text, d => {
-                    return {
-                        Suburb: d.Suburb,
-                        Rooms: +d.Rooms,
-                        Type: d.Type,
-                        Price: +d.Price,
-                        DateStr: d.Date,
-                        DateObj: parseDate(d.Date),
-                        Regionname: d.Regionname,
-                        Distance: +d.Distance,
-                        CouncilArea: d.CouncilArea
-                    };
+    const COL = {
+        price: 'Price',
+        distance: 'Distance',
+        type: 'Type',
+        suburb: 'Suburb',
+        region: 'Regionname',
+        date: 'SaleDate'
+    };
+
+    // Helper method to parse individual CSVs securely via Promise mapping
+    function parseCSV(url) {
+        return fetch(url)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error ${res.status} on ${url}`);
+                return res.text();
+            })
+            .then(text => {
+                return new Promise((resolve) => {
+                    Papa.parse(text, {
+                        header: true,
+                        dynamicTyping: true,
+                        skipEmptyLines: true,
+                        complete: (results) => resolve(results.data)
+                    });
                 });
-                fullData = parsed.filter(d => 
-                    !isNaN(d.Price) && 
-                    !isNaN(d.Distance) && 
-                    d.Regionname && 
-                    d.DateObj && 
-                    !isNaN(d.DateObj.getTime())
-                );
-                console.log(`Loaded ${fullData.length} valid rows`);
-                if (fullData.length === 0) throw new Error("No valid rows after cleaning");
+            });
+    }
 
-                // Populate region dropdown
-                const regions = [...new Set(fullData.map(d => d.Regionname))].sort();
-                const regionSelect = document.getElementById("region-filter");
-                regions.forEach(r => {
-                    const opt = document.createElement("option");
-                    opt.value = r;
-                    opt.textContent = r;
-                    regionSelect.appendChild(opt);
-                });
+    
 
-                // Event listeners
-                document.getElementById("type-filter").onchange = (e) => { filters.type = e.target.value; updateCharts(); };
-                document.getElementById("price-slider").oninput = (e) => {
-                    filters.maxPrice = +e.target.value;
-                    document.getElementById("price-value").innerText = filters.maxPrice.toLocaleString();
-                    updateCharts();
-                };
-                document.getElementById("region-filter").onchange = (e) => { filters.region = e.target.value; updateCharts(); };
-                document.getElementById("reset").onclick = () => {
-                    document.getElementById("type-filter").value = "All";
-                    document.getElementById("price-slider").value = "7000000";
-                    document.getElementById("price-value").innerText = "7,000,000";
-                    document.getElementById("region-filter").value = "All";
-                    filters = { type: "All", maxPrice: 7000000, region: "All" };
-                    updateCharts();
-                };
-                updateCharts();
-            } catch (err) {
-                console.error(err);
-                document.querySelectorAll(".vis-container").forEach(el => el.innerHTML = `<p style="color:red">Error: ${err.message}</p>`);
-            }
-        }
-
-        function getFiltered() {
-            let data = fullData;
-            if (filters.type !== "All") data = data.filter(d => d.Type === filters.type);
-            data = data.filter(d => d.Price <= filters.maxPrice);
-            if (filters.region !== "All") data = data.filter(d => d.Regionname === filters.region);
-            return data;
-        }
-
-        function updateCharts() {
-            const data = getFiltered();
-            if (!data.length) {
-                const emptySpec = { data: { values: [] }, mark: "text", encoding: { text: { value: "No data matches filters" } } };
-                vegaEmbed("#scatter-plot", emptySpec, { actions: false });
-                vegaEmbed("#bar-chart", emptySpec, { actions: false });
-                vegaEmbed("#line-chart", emptySpec, { actions: false });
+    function loadAllData() {
+        Promise.all([
+            parseCSV('data/cleaned_melbourne.csv').catch(e => { console.warn(e); return null; }),
+            parseCSV('data/properties_by_area.csv').catch(e => { console.warn(e); return null; }),
+            parseCSV('data/sales_by_region.csv').catch(e => { console.warn(e); return null; })
+        ]).then(([mainData, parsedArea, parsedRegion]) => {
+            
+            if (!mainData || mainData.length === 0) {
+                console.log("Main CSV not discovered, fallback to static mock data structures.");
+                loadMockData();
                 return;
             }
 
-            // Scatter plot
-            vegaEmbed("#scatter-plot", {
-                data: { values: data },
-                width: "container", height: 400,
-                mark: { type: "circle", opacity: 0.6, size: 40 },
-                encoding: {
-                    x: { field: "Distance", type: "quantitative", title: "Distance from CBD (km)" },
-                    y: { field: "Price", type: "quantitative", title: "Price (AUD)", axis: { format: "$,.0f" } },
-                    color: { field: "Regionname", type: "nominal", title: "Region" },
-                    tooltip: [{ field: "Suburb" }, { field: "Price", format: "$,.0f" }, { field: "Rooms" }]
-                }
-            }, { actions: false });
+            fullData = mainData.filter(row => 
+                row[COL.price] && !isNaN(row[COL.price]) &&
+                row[COL.distance] && !isNaN(row[COL.distance]) &&
+                row[COL.type] && ['h','t','u'].includes(row[COL.type]) &&
+                row[COL.suburb]
+            );
 
-            // Bar chart
-            vegaEmbed("#bar-chart", {
-                data: { values: data },
-                width: "container", height: 400,
-                mark: "bar",
-                encoding: {
-                    x: { field: "Regionname", type: "nominal", title: "Region", sort: "-y" },
-                    y: { field: "Price", type: "quantitative", aggregate: "median", title: "Median Price (AUD)", axis: { format: "$,.0f" } },
-                    color: { field: "Price", aggregate: "median", scale: { scheme: "blues" } }
-                }
-            }, { actions: false });
+            areaData = parsedArea || [];
+            regionSalesData = parsedRegion || [];
 
-            // Line chart (using pre-parsed DateObj)
-            vegaEmbed("#line-chart", {
-                data: { values: data },
-                width: "container", height: 400,
-                mark: { type: "line", point: true },
-                encoding: {
-                    x: { field: "DateObj", type: "temporal", title: "Sale Date", timeUnit: "yearmonth", axis: { format: "%b %Y", labelAngle: -45 } },
-                    y: { field: "Price", type: "quantitative", aggregate: "median", title: "Median Price (AUD)", axis: { format: "$,.0f" } }
-                }
-            }, { actions: false });
+            populateSuburbs();
+            applyFiltersAndRender();
+        });
+    }
+
+    function loadMockData() {
+        fullData = [
+            { Price: 1000000, Distance: 5, Type: 'h', Suburb: 'Abbotsford', Regionname: 'Northern Metropolitan', SaleDate: '01/04/2017' },
+            { Price: 800000, Distance: 10, Type: 't', Suburb: 'Airport West', Regionname: 'Western Metropolitan', SaleDate: '15/06/2017' },
+            { Price: 600000, Distance: 20, Type: 'u', Suburb: 'Melton', Regionname: 'Western Victoria', SaleDate: '20/12/2018' },
+            { Price: 1500000, Distance: 3, Type: 'h', Suburb: 'Armadale', Regionname: 'Southern Metropolitan', SaleDate: '10/03/2016' },
+            { Price: 450000, Distance: 30, Type: 'u', Suburb: 'Melton South', Regionname: 'Western Victoria', SaleDate: '05/08/2018' }
+        ];
+        areaData = [
+            { Area: 'Northern', Count: 400 }, { Area: 'Southern', Count: 550 }, { Area: 'Western', Count: 300 }
+        ];
+        regionSalesData = [
+            { Region: 'Northern Metropolitan', Volume: 1200 }, { Region: 'Western Metropolitan', Volume: 900 }, { Region: 'Southern Metropolitan', Volume: 1600 }
+        ];
+        populateSuburbs();
+        applyFiltersAndRender();
+    }
+
+    function populateSuburbs() {
+        const suburbsSet = new Set();
+        fullData.forEach(d => suburbsSet.add(d[COL.suburb]));
+        const sorted = Array.from(suburbsSet).sort();
+        const select = document.getElementById('suburbSelect');
+        select.innerHTML = '<option value="all">All suburbs</option>';
+        sorted.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            select.appendChild(opt);
+        });
+    }
+
+    function getFilteredData() {
+        const suburb = document.getElementById('suburbSelect').value;
+        const maxPrice = parseFloat(document.getElementById('priceSlider').value);
+        const selectedTypes = Array.from(document.querySelectorAll('.checkbox-group input:checked')).map(cb => cb.value);
+        const year = document.getElementById('yearSelect').value;
+
+        return fullData.filter(row => {
+            if (suburb !== 'all' && row[COL.suburb] !== suburb) return false;
+            if (row[COL.price] > maxPrice) return false;
+            if (!selectedTypes.includes(row[COL.type])) return false;
+            if (year !== 'all') {
+                const parts = row[COL.date]?.split('/');
+                const rowYear = parts && parts.length === 3 ? parseInt(parts[2], 10) : null;
+                if (rowYear !== parseInt(year, 10)) return false;
+            }
+            return true;
+        });
+    }
+
+    function computeRegionAvg(filtered) {
+        const map = new Map();
+        filtered.forEach(row => {
+            const region = row[COL.region];
+            if (!region) return;
+            if (!map.has(region)) map.set(region, { sum: 0, count: 0 });
+            const entry = map.get(region);
+            entry.sum += row[COL.price];
+            entry.count++;
+        });
+        const labels = Array.from(map.keys());
+        const values = labels.map(l => map.get(l).sum / map.get(l).count);
+        return { labels, values };
+    }
+
+    function computeMonthlyAvg(filtered) {
+        const monthMap = new Map();
+        filtered.forEach(row => {
+            if (!row[COL.date]) return;
+            const parts = row[COL.date].split('/');
+            if (parts.length !== 3) return;
+            const year = parts[2];
+            const month = parts[1];
+            const key = `${year}-${month.padStart(2,'0')}`;
+            if (!monthMap.has(key)) monthMap.set(key, { sum: 0, count: 0 });
+            const entry = monthMap.get(key);
+            entry.sum += row[COL.price];
+            entry.count++;
+        });
+        const sortedKeys = Array.from(monthMap.keys()).sort();
+        const avgPrices = sortedKeys.map(k => monthMap.get(k).sum / monthMap.get(k).count);
+        return { labels: sortedKeys, values: avgPrices };
+    }
+
+    function updateBarChart(filtered) {
+        const { labels, values } = computeRegionAvg(filtered);
+        if (barChart) barChart.destroy();
+        const ctx = document.getElementById('barChart').getContext('2d');
+        barChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels, datasets: [{ label: 'Average price (AUD)', data: values, backgroundColor: '#3b82f6' }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    function updateScatterPlot(filtered) {
+        const typeColors = { h: '#3b82f6', t: '#10b981', u: '#f59e0b' };
+        const housePoints = filtered.filter(d => d[COL.type] === 'h').map(d => ({ x: d[COL.distance], y: d[COL.price] }));
+        const townPoints = filtered.filter(d => d[COL.type] === 't').map(d => ({ x: d[COL.distance], y: d[COL.price] }));
+        const unitPoints = filtered.filter(d => d[COL.type] === 'u').map(d => ({ x: d[COL.distance], y: d[COL.price] }));
+        if (scatterChart) scatterChart.destroy();
+        const ctx = document.getElementById('scatterChart').getContext('2d');
+        scatterChart = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: [
+                { 
+    label: 'House',
+    data: housePoints,
+    backgroundColor: typeColors.h,
+    pointRadius: 1.5,
+    pointHoverRadius: 4
+},
+{
+    label: 'Townhouse',
+    data: townPoints,
+    backgroundColor: typeColors.t,
+    pointRadius: 1.5,
+    pointHoverRadius: 4
+},
+{
+    label: 'Unit',
+    data: unitPoints,
+    backgroundColor: typeColors.u,
+    pointRadius: 1.5,
+    pointHoverRadius: 4
+}
+            ] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Distance (km)' } }, y: { title: { display: true, text: 'Price (AUD)' } } } }
+        });
+    }
+
+    function updatePieChart() {
+        if (pieChart) pieChart.destroy();
+        const labels = areaData.map(d => Object.values(d)[0]);
+        const values = areaData.map(d => Object.values(d)[1]);
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        pieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6']
+                }]
+            },
+            options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'bottom'
+        },
+        datalabels: {
+            color: '#fff',
+            font: {
+                weight: 'bold',
+                size: 10
+            },
+            formatter: (value, ctx) => {
+                return ctx.chart.data.labels[ctx.dataIndex];
+            }
         }
+    }
+}
+        });
+    }
 
-        loadData();
-    </script>
+    function updateDonutChart() {
+        if (donutChart) donutChart.destroy();
+        const labels = regionSalesData.map(d => Object.values(d)[0]);
+        const values = regionSalesData.map(d => Object.values(d)[1]);
+        const ctx = document.getElementById('donutChart').getContext('2d');
+        donutChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: ['#2c6e9e', '#10b981', '#f43f5e', '#f59e0b', '#6366f1', '#a855f7']
+                }]
+            },
+            options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+    legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+            boxWidth: 10,
+            font: {
+                size: 8
+            }
+        }
+    },
+        datalabels: {
+    color: '#333',
+    anchor: 'end',
+    align: 'end',
+    offset: 5,
+    font: {
+        size: 8   // try 7, 8, or 9
+    },
+    formatter: function(value, context) {
+        return context.chart.data.labels[context.dataIndex];
+    }
+}
+        }
+    }
+        });
+    }
+
+    function updateLineChart(filtered) {
+        const { labels, values } = computeMonthlyAvg(filtered);
+        if (lineChart) lineChart.destroy();
+        const ctx = document.getElementById('lineChart').getContext('2d');
+        lineChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Average monthly price (AUD)', data: values, borderColor: '#e11d48', fill: false, tension: 0.1 }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    function applyFiltersAndRender() {
+        const filtered = getFilteredData();
+        updateBarChart(filtered);
+        updateScatterPlot(filtered);
+        updatePieChart();
+        updateDonutChart();
+        updateLineChart(filtered);
+        document.getElementById('priceValue').innerText = `Up to $${parseInt(document.getElementById('priceSlider').value).toLocaleString()}`;
+    }
+
+    function attachEvents() {
+        document.getElementById('suburbSelect').addEventListener('change', applyFiltersAndRender);
+        document.getElementById('priceSlider').addEventListener('input', (e) => {
+            document.getElementById('priceValue').innerText = `Up to $${parseInt(e.target.value).toLocaleString()}`;
+            applyFiltersAndRender();
+        });
+        document.querySelectorAll('.checkbox-group input').forEach(cb => cb.addEventListener('change', applyFiltersAndRender));
+        document.getElementById('yearSelect').addEventListener('change', applyFiltersAndRender);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('suburbSelect').value = 'all';
+            document.getElementById('priceSlider').value = '3500000';
+            document.getElementById('priceValue').innerText = 'Up to $3,500,000';
+            document.querySelectorAll('.checkbox-group input').forEach(cb => cb.checked = true);
+            document.getElementById('yearSelect').value = 'all';
+            applyFiltersAndRender();
+        });
+    }
+
+    loadAllData();
+    attachEvents();
+</script>
 </body>
 </html>
