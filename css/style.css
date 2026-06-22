@@ -173,7 +173,8 @@ body {
     display: flex;
     flex-direction: column;
     padding: 24px;
-    height: 100%;
+    height: 100vh;      /* Force workspace to fill screen view tightly */
+    overflow: hidden;   /* Keeps components strictly locked inside screen bounds */
     min-width: 0;
 }
 
@@ -277,7 +278,7 @@ body {
     grid-template-rows: repeat(2, 1fr);
     gap: 16px;
     flex: 1; 
-    min-height: 0;
+    min-height: 0; /* CRITICAL: Permits grid matrix blocks to scale down to fit viewport */
 }
 
 .panel {
@@ -288,6 +289,7 @@ body {
     border: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
+    min-height: 0; /* Ensures inner flex layouts can scale correctly down */
 }
 
 .panel h3 {
@@ -302,7 +304,7 @@ body {
     position: relative;
     width: 100%;
     height: 100%;
-    min-height: 0;
+    min-height: 0; /* CRITICAL: Forces D3 parent objects to calculate smaller metrics on screen stress */
 }
 
 .svg-container svg {
@@ -313,12 +315,12 @@ body {
 
 /* LOWER INSIGHT SUMMARY FOOTER */
 .insights {
-    margin-top: 20px;
+    margin-top: 16px;
     background: #eff6ff;
     border: 1px solid #bfdbfe;
-    padding: 14px 18px;
+    padding: 12px 18px;
     border-radius: 8px;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Strictly locks vertical sizing from dropping down or overlapping charts */
 }
 
 .insights h2 { 
@@ -332,12 +334,14 @@ body {
     font-size: 0.85rem; 
     color: #1e3a8a;
     display: flex;
+    flex-wrap: wrap; /* Wraps inline details gracefully if scaling gets constrained */
     justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
 }
 
 .insights ul li {
     list-style-type: none;
+    white-space: nowrap; /* Prevents text line splits */
 }
 
 /* ABSOLUTE FLOATING DATA ACCESSIBILITY TOOLTIP */
