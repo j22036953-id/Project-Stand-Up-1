@@ -1,0 +1,357 @@
+/* CSS RESET & TYPOGRAPHY FOUNDATION */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden; /* Prevents whole-page scrolling */
+}
+
+/* MASTER SPLIT-PANEL WRAPPER */
+.app-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* SIDEBAR STYLING (LEFT) */
+.sidebar {
+    width: 260px;
+    background-color: #0f172a;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    flex-shrink: 0;
+}
+
+/* Brand Asset Header Integration */
+.sidebar .logo {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.brand-logo {
+    max-width: 100%;
+    height: auto;
+    max-height: 42px; /* Restricts the logo height inside the nav panel */
+    object-fit: contain;
+}
+
+.version-tag {
+    font-size: 0.68rem;
+    color: #475569;
+    font-weight: 500;
+    padding-left: 2px;
+}
+
+/* Sidebar Structural Text Sections */
+.nav-section-title {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #475569;
+    margin: 20px 0 8px 12px;
+    font-weight: 700;
+}
+
+.sidebar nav ul {
+    list-style: none;
+}
+
+.sidebar nav ul li {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #94a3b8;
+    transition: all 0.15s ease;
+}
+
+.sidebar nav ul li.active, 
+.sidebar nav ul li:hover {
+    background-color: #1e293b;
+    color: #38bdf8;
+}
+
+/* Sidebar Custom Interactive Switches */
+.sidebar-controls {
+    margin-top: 10px;
+}
+
+.control-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    padding-left: 14px;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.control-label:hover {
+    color: #f8fafc;
+}
+
+.control-label input[type="radio"] {
+    accent-color: #38bdf8; /* Styles browser radio inputs to match theme */
+}
+
+/* Sticky Alignment Pin to Bottom Edge */
+.sidebar-footer {
+    margin-top: auto; 
+    border-top: 1px solid #1e293b;
+    padding-top: 16px;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    background: #38bdf8;
+    color: #0f172a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.username { 
+    font-size: 0.85rem; 
+    font-weight: 600; 
+    color: #f8fafc; 
+}
+
+.role { 
+    font-size: 0.72rem; 
+    color: #64748b; 
+}
+
+.help-link {
+    font-size: 0.78rem;
+    color: #38bdf8;
+    text-decoration: none;
+    display: inline-block;
+    padding-left: 2px;
+}
+
+.help-link:hover { 
+    text-decoration: underline; 
+}
+
+/* GRAPH AREA WORKSPACE MANAGER (RIGHT) */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    height: 100%;
+    min-width: 0;
+}
+
+/* UPPER CONTROL ROW STYLING */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.title-area h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.title-area p {
+    color: #64748b;
+    font-size: 0.85rem;
+    margin-top: 2px;
+}
+
+/* FILTER PANEL FORCED TO THE RIGHT CORNER */
+.filter-panel {
+    display: flex;
+    gap: 12px;
+}
+
+.filter-panel select {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    color: #334155;
+    font-size: 0.85rem;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+}
+
+.filter-panel select:focus {
+    border-color: #3b82f6;
+}
+
+.filter-panel button {
+    padding: 8px 18px;
+    border-radius: 6px;
+    border: none;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.filter-panel button:hover {
+    background-color: #1d4ed8;
+}
+
+/* METRIC SUMMARIZATION ROW */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+.kpi-card {
+    background: #ffffff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.kpi-card span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.kpi-card h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-top: 6px;
+    color: #0f172a;
+}
+
+/* DATA GRAPH CONTAINER MATRIX (Balanced 2x2 Viewport Scaling) */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 16px;
+    flex: 1; 
+    min-height: 0;
+}
+
+.panel {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #334155;
+}
+
+.svg-container {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.svg-container svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* LOWER INSIGHT SUMMARY FOOTER */
+.insights {
+    margin-top: 20px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    padding: 14px 18px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.insights h2 { 
+    font-size: 0.95rem; 
+    margin-bottom: 6px; 
+    color: #1e40af;
+}
+
+.insights ul { 
+    list-style-position: inside; 
+    font-size: 0.85rem; 
+    color: #1e3a8a;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.insights ul li {
+    list-style-type: none;
+}
+
+/* ABSOLUTE FLOATING DATA ACCESSIBILITY TOOLTIP */
+#tooltip {
+    position: absolute;
+    opacity: 0;
+    background: rgba(15, 23, 42, 0.95);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    pointer-events: none;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    z-index: 9999;
+    border: 1px solid #334155;
+}
