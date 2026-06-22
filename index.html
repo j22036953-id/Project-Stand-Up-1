@@ -2,95 +2,151 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Melbourne Property Dashboard – Professional Edition</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Australian Drug Driving Enforcement Dashboard</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="js/main.js" defer></script>
-    <script src="js/bar.js" defer></script>
-    <script src="js/scatter.js" defer></script>
-    <script src="js/line.js" defer></script>
-    <script src="js/pie.js" defer></script>
-    <script src="js/donut.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- D3.js core data visualization library -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-<div class="dashboard">
-    <div class="header">
-        <h1>🏡 Melbourne House Price Explorer</h1>
-        <p>Interactive dashboard | 2016–2018 sales data | Filter, compare, discover</p>
+
+    <div class="app-container">
+        <!-- LEFT COLUMN: Navigation Sidebar -->
+        <aside class="sidebar">
+            <!-- Brand Asset Row -->
+            <div class="logo">
+                <img src="logo.png" alt="DrugVis Logo" class="brand-logo">
+                <span class="version-tag">v1.4 (Updated 2026)</span>
+            </div>
+            
+            <!-- Navigation Links grouped by functional sections -->
+            <nav>
+                <span class="nav-section-title">Analytics Workspace</span>
+                <ul>
+                    <li class="active">📊 Positive Drug Tests</li>
+                    <li>📈 Overview Trends</li>
+                </ul>
+
+                <span class="nav-section-title">Geographic Breakdown</span>
+                <ul>
+                    <li>🗺️ State Analysis</li>
+                    <li>⚖️ Enforcement Rates</li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Workspace Metric Switches -->
+            <div class="sidebar-controls">
+                <span class="nav-section-title">Active Metric Focus</span>
+                <label class="control-label">
+                    <input type="radio" name="metricGlobal" checked> Positive Detections
+                </label>
+                <label class="control-label">
+                    <input type="radio" name="metricGlobal"> Infringement Fines ($)
+                </label>
+            </div>
+
+            <!-- Absolute Bottom Layout Footer Info Pin -->
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">G</div>
+                    <div class="user-info">
+                        <span class="username">Guest Access</span>
+                        <span class="role">Public Session</span>
+                    </div>
+                </div>
+                <a href="#" class="help-link">📘 Data Source Methodology</a>
+            </div>
+        </aside>
+
+        <!-- RIGHT COLUMN: Main Visual Workspace -->
+        <main class="main-content">
+            
+            <!-- Workspace Top Bar: Left Title, Right Filters -->
+            <header class="topbar">
+                <div class="title-area">
+                    <h1>Australian Drug Driving Enforcement Dashboard</h1>
+                    <p>Explore roadside drug detection trends across Australia (2008–2024)</p>
+                </div>
+
+                <!-- RIGHT ALIGNED FILTERS PANEL -->
+                <div class="filter-panel">
+                    <select id="yearFilter">
+                        <option value="all">All Years</option>
+                    </select>
+                    <select id="stateFilter">
+                        <option value="all">All States</option>
+                    </select>
+                    <button id="resetBtn">Reset</button>
+                </div>
+            </header>
+
+            <!-- High-Level Metric Summaries -->
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <span>Total Positive Tests</span>
+                    <h2 id="totalTests">0</h2>
+                </div>
+                <div class="kpi-card">
+                    <span>Highest State</span>
+                    <h2 id="highestState">-</h2>
+                </div>
+                <div class="kpi-card">
+                    <span>Peak Year</span>
+                    <h2 id="peakYear">-</h2>
+                </div>
+                <div class="kpi-card">
+                    <span>Fastest Growth</span>
+                    <h2 id="growthState">-</h2>
+                </div>
+            </section>
+
+            <!-- 2x2 Interactive Graph Grid (Locked to Window Scale) -->
+            <section class="dashboard-grid">
+                <div class="panel">
+                    <h3>National Trend</h3>
+                    <div class="svg-container">
+                        <svg id="lineChart"></svg>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>State Ranking</h3>
+                    <div class="svg-container">
+                        <svg id="rankingChart"></svg>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>State vs Year Heatmap</h3>
+                    <div class="svg-container">
+                        <svg id="heatmapChart"></svg>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>Australia Choropleth Map</h3>
+                    <div class="svg-container">
+                        <svg id="mapChart"></svg>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contextual Insight Layer -->
+            <section class="insights">
+                <h2>Key Findings</h2>
+                <div id="insightBox">
+                    Select filters to explore patterns in the data.
+                </div>
+            </section>
+        </main>
     </div>
 
-    <div class="filters">
-        <div class="filter-group">
-            <label>📍 Suburb</label>
-            <select id="suburbSelect">
-                <option value="all">All suburbs</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>💰 Max price (AUD)</label>
-            <input type="range" id="priceSlider" min="0" max="3500000" step="50000" value="3500000">
-            <div class="price-value" id="priceValue">Up to $3,500,000</div>
-        </div>
-        <div class="filter-group checkbox-group">
-            <label><input type="checkbox" value="h" checked> 🏠 House</label>
-            <label><input type="checkbox" value="t" checked> Testing Townhouse</label>
-            <label><input type="checkbox" value="u" checked> 🏢 Unit</label>
-        </div>
-        <div class="filter-group">
-            <label>📅 Year range</label>
-            <select id="yearSelect">
-                <option value="all">All years</option>
-                <option value="2016">2016</option>
-                <option value="2017">2017</option>
-                <option value="2018">2018</option>
-            </select>
-        </div>
-        <button class="reset-btn" id="resetBtn">⟳ Reset all filters</button>
-    </div>
+    <!-- Global Floating Tooltip Target Element -->
+    <div id="tooltip"></div>
 
-    <div class="chart-grid">
-        <div class="chart-card col-span-2">
-            <h3>📊 Average price by region</h3>
-            <div class="canvas-container">
-                <canvas id="barChart"></canvas>
-            </div>
-        </div>
-        
-        <div class="chart-card col-span-2">
-            <h3>📈 Price vs Distance from CBD</h3>
-            <div class="canvas-container">
-                <canvas id="scatterChart"></canvas>
-            </div>
-        </div>
-
-        <div class="chart-card">
-            <h3>🍕 Properties by Area</h3>
-            <div class="canvas-container">
-                <canvas id="pieChart"></canvas>
-            </div>
-        </div>
-
-        <div class="chart-card">
-            <h3>🍩 Sales by Region</h3>
-            <div class="canvas-container">
-                <canvas id="donutChart"></canvas>
-            </div>
-        </div>
-
-        <div class="chart-card col-span-2">
-            <h3>📉 Price trend over time (monthly average)</h3>
-            <div class="canvas-container">
-                <canvas id="lineChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer">
-        Data source: Cleaned Melbourne house sales (63k+ records) | Hover on charts for details | Charts update instantly with filters
-    </div>
-</div>
+    <!-- Core App Bootstrappers -->
+    <script src="js/linechart.js"></script>
+    <script src="js/rankingChart.js"></script>
+    <script src="js/heatmap.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
